@@ -1,4 +1,4 @@
-function sliding_zproj(image_dir, frames_to_merge, out_dir, params)
+function flowtrace(image_dir, frames_to_merge, out_dir, params)
 % This function takes the sliding maximum intensity projection of
 % a series of ordered image files in an image directory
 % 
@@ -30,6 +30,13 @@ function sliding_zproj(image_dir, frames_to_merge, out_dir, params)
 % subtract_first : bool
 %     For each set of freams being merged, subtract the first frame from
 %     the entire stack
+% color_series : bool
+%     For each set of frames being merged, apply a gradient of color to frames 
+%       further in the past so that each pathline has a color gradient corresponding
+%       to time.
+% fade_tails : bool
+%      For each pathline, fade the frames further in the past so that the
+%      pathline has an intensity gradient corresponding to time.
 %     
 %
 % Examples
@@ -42,9 +49,6 @@ function sliding_zproj(image_dir, frames_to_merge, out_dir, params)
 % >> params.subtract_median=true
 % >> flowtrace('sample_data',30,'sample_output',params)
 %
-%
-% FUTURE: color diff, check handling of color images
-
 
 % If params not specified use all defaults
 if nargin==3
@@ -61,14 +65,14 @@ end
 if ~isfield(params,'invert_color')
     params.invert_color=false;
 end
-if ~isfield(params,'take_diff')
-    params.take_diff=false;
-end
 if ~isfield(params,'subtract_first')
     params.subtract_first=false;
 end
 if ~isfield(params,'color_series')
     params.color_series=false;
+end
+if ~isfield(params,'fade_tails')
+    params.fade_tails=false;
 end
 
 images = make_image_struct(image_dir);
@@ -76,7 +80,6 @@ N = numel(images);
 
 frame0 = imread(images(1).name);
 frame0=im2double(frame0);
-% processing function goes here
 
 sz = size(frame0);
 
@@ -98,7 +101,6 @@ for ii = 1:(N-frames_to_merge)
         for jj = 1:frames_to_merge
             im = imread(images(jj).name);
             im = im2double(im);
-            % processing function goes here
             stack(:,:,jj,:) = im;
         end
     else
@@ -133,6 +135,30 @@ for ii = 1:(N-frames_to_merge)
         %      stack2(:,:,jj) = stack2(:,:,jj)-med_im;
         %  end
     end
+        
+    if (params.color_series || params.fade_tails)
+        if params.color_series
+            bgclr = [90 10 250]/255;
+            fgclr = [255 153 0]/255;
+        elseif params.fade_tails
+            bgclr = [0 0 0];
+            fgclr = [1 1 1];
+        end
+        all_clr = zeros(frames_to_merge, 3);
+        for qq=1:3
+            all_clr(:,qq) = linspace(bgclr(qq),fgclr(qq), frames_to_merge);
+        end
+        
+        maxdim = length(size(stack2));
+        stack2 = cat(maxdim+1,stack2,stack2,stack2);
+        
+        sz = size(stack2);
+        extrude_clr = repmat(all_clr,1,1,sz(1), sz(2));
+        extrude_clr = permute(extrude_clr,[4 3 1 2]);
+        
+        stack2 = stack2.*extrude_clr;
+        
+    end
     
     if params.invert_color
         max_proj = min(stack2,[], 3);
@@ -140,6 +166,9 @@ for ii = 1:(N-frames_to_merge)
     else 
         max_proj = max(stack2,[], 3);
     end
+
+    
+    max_proj = squeeze(max_proj);
 
     % Save image
     imname = [images(ii).name(1:end-4), '_streamlines', '_frames', num2str(frames_to_merge), '.tif'];

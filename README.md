@@ -1,4 +1,4 @@
-# Flowtrace for MATLAB
+# flowtrace for MATLAB
 
 The code repository for the MATLAB implementation of flowtrace.
 
