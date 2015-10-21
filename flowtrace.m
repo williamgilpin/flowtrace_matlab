@@ -40,7 +40,7 @@ function sliding_zproj(image_dir, frames_to_merge, out_dir, params)
 % % Run with special parameters
 % >> params=struct()
 % >> params.subtract_median=true
-% >> flowtrace('sample_data',30,'sample_output/output_data_10frames',params)
+% >> flowtrace('sample_data',30,'sample_output',params)
 %
 %
 % FUTURE: color diff, check handling of color images
