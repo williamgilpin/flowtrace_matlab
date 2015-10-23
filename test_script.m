@@ -12,7 +12,12 @@ addpath(my_wd);
 % run the test code
 flowtrace('sample_data',30,'sample_output');
 
-% uncomment to test passing parameters
+% % uncomment to test passing parameters
 % params = struct();
-% params.fade_tails=true;
+% params.subtract_median=true;
+% params.subtract_first=false;
+% params.invert_color=false;
+% params.take_diff=false;
+% params.fade_tails=false;
+% params.color_series=true;
 % flowtrace('sample_data',30,'sample_output',params);

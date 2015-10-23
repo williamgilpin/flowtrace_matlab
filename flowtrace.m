@@ -97,6 +97,11 @@ end
 
 for ii = 1:(N-frames_to_merge)
     
+    % display progress
+    if mod(ii,floor(N/20))==0
+        disp(['Completed ' num2str(ii) ' of ' num2str((N-frames_to_merge))]);
+    end
+    
     if ii == 1
         for jj = 1:frames_to_merge
             im = imread(images(jj).name);
@@ -107,7 +112,8 @@ for ii = 1:(N-frames_to_merge)
         im = imread(images(ii+frames_to_merge-1).name);
         im = im2double(im);
         % processing function goes here
-        stack = circshift(stack,-1,3);
+%         stack = circshift(stack,-1,3); % only works R2014a and later
+        stack = circshift(stack,[0 0 -1]);
         stack(:,:,end,:) = im;
     end
     
