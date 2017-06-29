@@ -1,13 +1,14 @@
 function flowtrace(image_dir, frames_to_merge, out_dir, params)
 % This function takes the sliding maximum intensity projection of
-% a series of ordered image files in an image directory
+% either a movie or a series of ordered image files in an image directory
 % 
-% Developed by William Gilpin, Vivek Prakash, and Manu Prakash, 2015
+% Code written by William Gilpin, 2015-2017. Please report issues on GitHub
 %
 % Inputs
 % ------
 % image_dir : str
-%     The path to the directory containing time series images
+%     either the path to the directory containing time series images
+%     or the full path to a movie file of time series images
 % frames_to_merge : int
 %     The number of frames to merge together
 % out_dir : str
@@ -75,12 +76,25 @@ if ~isfield(params,'fade_tails')
     params.fade_tails=false;
 end
 
-images = make_image_struct(image_dir);
-N = numel(images);
+% Check if the input is a movie file
+[~,~,file_ext] = fileparts(image_dir);
+if ~isempty(file_ext)
+    movie_flag = 1; 
+else
+    movie_flag = 0;
+end
 
-frame0 = imread(images(1).name);
+if ~movie_flag
+    images = make_image_struct(image_dir);
+    N = numel(images);
+    frame0 = imread(images(1).name);
+else
+    v = VideoReader(image_dir);
+    N = v.NumberOfFrames;
+    frame0 = read(v, 1);
+end
+
 frame0=im2double(frame0);
-
 sz = size(frame0);
 
 if (length(sz)==3) && sz(3)==3
@@ -104,12 +118,22 @@ for ii = 1:(N-frames_to_merge)
     
     if ii == 1
         for jj = 1:frames_to_merge
-            im = imread(images(jj).name);
+            if ~movie_flag
+                im = imread(images(jj).name);
+            else
+                im = read(v, jj);
+            end
             im = im2double(im);
             stack(:,:,jj,:) = im;
         end
     else
-        im = imread(images(ii+frames_to_merge-1).name);
+        
+        if ~movie_flag
+            im = imread(images(ii+frames_to_merge-1).name);
+        else
+            im = read(v, ii+frames_to_merge-1);
+        end
+        
         im = im2double(im);
         % processing function goes here
 %         stack = circshift(stack,-1,3); % only works R2014a and later
@@ -176,8 +200,13 @@ for ii = 1:(N-frames_to_merge)
     
     max_proj = squeeze(max_proj);
 
-    % Save image
-    imname = [images(ii).name(1:end-4), '_streamlines', '_frames', num2str(frames_to_merge), '.tif'];
+    % Save images
+    if ~movie_flag
+        imname = [images(ii).name(1:end-4), '_streamlines', '_frames', num2str(frames_to_merge), '.tif'];
+    else
+        imname = ['frame_', num2str(ii), '_streamlines', '_frames', num2str(frames_to_merge), '.tif'];
+    end
+        
     savestr = fullfile(out_dir, imname);
     imwrite(max_proj, savestr, 'Compression','None');
 end
